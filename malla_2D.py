@@ -3,8 +3,10 @@
 # Código de python para integrar GMSH y MATLAB
 
 import gmsh
+import numpy as np
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 
 gmsh.initialize()
 gmsh.option.setNumber("General.Terminal", 1)
@@ -56,10 +58,6 @@ gmsh.model.mesh.generate(2)
 gmsh.option.setNumber("Mesh.SurfaceFaces", 1)  # Para ver las caras de los elementos finitos
 gmsh.option.setNumber("Mesh.Points", 1)        # Ver los nodos de la malla
 
-
-
-
-
 # GUARDAR MALLA
 
 filename = "malla_2.msh"
@@ -70,29 +68,34 @@ gmsh.write(filename)
 gmsh.fltk.run()
 gmsh.finalize()
 
-# CÓDIGO PARA EXTRAER LAS COORDENADAS DE NODOS Y TOPOLOGÍA
+
 
 from leer_GMSH import xnod_from_msh, LaG_from_msh, plot_msh
+
 malla = 'malla_2.msh'
 
 # Matriz de coordenadas nodales
 xnod = xnod_from_msh(malla, dim=2)
 
+# Se imprimen los primeros 10 nodos
+for i in range(10):
+    x, y = xnod[i]
+    print(f'Nodo {i+1:2.0f}: x = {x:.4f}, y = {y:.4f}')
+
 # Matriz de interconexión nodal
 LaG = LaG_from_msh(malla)
 nef = LaG.shape[0]
 
+# Se imprimen los primeros 5 elementos y los 5 últimos:
+print()
+for e in list(range(5)) + list(range(nef-5, nef)):
+    print(f'Elemento {e+1:3.0f}: Superficie = {LaG[e, 0]+1},   '
+          f'Nodos = {LaG[e, 1:]+1}')
+    
+top = np.zeros_like(LaG)
+for e in range(len(LaG)):
+    top[e, :] = LaG[e, :] +1
 
-# USO DE PANDAS PARA CREAR DATAFRAMES
-df = pd.DataFrame(xnod)
-df_top =pd.DataFrame(LaG)
 
-# GUARDAR DATOS
-
-# Exportar data de coordenadas de nodos (TXT)
-file_path = os.path.join(os.path.dirname(__file__), 'coordenadas_data.txt')
-df.to_csv(file_path, sep=' ', index=True)
-
-# Exportar data de topología (TXT)
-file_path = os.path.join(os.path.dirname(__file__), 'topologia_data.txt')
-df_top.to_csv(file_path, sep=' ', index=True)
+np.savetxt('top.txt', top, fmt='%d', delimiter=' ')
+np.savetxt('coord.txt', xnod, fmt='%.4f', delimiter=' ')
